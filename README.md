@@ -6,7 +6,7 @@
 Welcome to the official repository of my master's thesis exploring what
 makes online product reviews more helpful on platforms like Amazon. This
 project combines **computational social science**, **sentiment
-analysis**, and **e-commerce research** to uncover the hidden dynamics
+analysis** and **verified purchase**, and **e-commerce research** to uncover the hidden dynamics
 of review helpfulness.
 
 ## 🔍 Research Questions
@@ -16,7 +16,7 @@ of review helpfulness.
 
 🔍 What This Research Is About Every day, millions of product reviews
 shape consumer decisions. But not all reviews are created equal. This
-project ask that ***Do reviews from verified buyers get more attention?
+project asks that ***Do reviews from verified buyers get more attention?
 Does emotional language make a review more persuasive? How do these
 effects change across product types, prices, and time?*** We explore
 these questions through statistical modeling, sentiment analysis, and a
