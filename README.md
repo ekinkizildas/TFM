@@ -1,29 +1,40 @@
+---
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
 # TFM
 
 🧠 Why Are Some Reviews More Helpful Than Others?
 
-Welcome to the official repository of my master’s thesis — a deep dive into what makes online product reviews more “helpful” on platforms like Amazon. Is it just about what is written, or who writes it? Let’s find out.
+Welcome to the official repository of my master's thesis exploring what
+makes online product reviews more helpful on platforms like Amazon. This
+project combines **computational social science**, **sentiment
+analysis**, and **e-commerce research** to uncover the hidden dynamics
+of review helpfulness.
 
-🔍 What This Research Is About
-Every day, millions of product reviews shape consumer decisions. But not all reviews are created equal. This project asks:
-Do reviews from verified buyers get more attention?
-Does emotional language make a review more persuasive?
-How do these effects change across product types, prices, and time?
-We explore these questions through statistical modeling, sentiment analysis, and a dataset of 160,000 English-language Amazon reviews across 8 product categories.
+## 🔍 Research Questions
+- Do verified purchase reviews receive more helpful votes?
+- How does emotional language influence perceived helpfulness?
+- Do these effects vary by product category, price, or review age?
 
-🛠️ What’s Inside
-Cleaned Data → Pre-processed Amazon review samples
-Sentiment Analysis → Lexicon-based (AFINN, BING, NRC)
-Modeling Scripts → Poisson, Negative Binomial, and Zero-Inflated NB
-Interaction Effects → Verified × Sentiment, Length × Sentiment
-Visuals & Output → Plots, tables, and regression summaries
-Final Paper → 📄 thesis.pdf
+🔍 What This Research Is About Every day, millions of product reviews
+shape consumer decisions. But not all reviews are created equal. This
+project ask that ***Do reviews from verified buyers get more attention?
+Does emotional language make a review more persuasive? How do these
+effects change across product types, prices, and time?*** We explore
+these questions through statistical modeling, sentiment analysis, and a
+dataset of 160,000 English language Amazon reviews across 8 product
+categories.
+
 
 📥 Download the dataset here:
-https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing
+<https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing>
 
-Folder structure:
-```
+## 🛠️ Repository Contents
+
+```         
 📦 project-root/
 ├── data/
 ├── scripts/
@@ -31,29 +42,55 @@ Folder structure:
 ├── figures/
 └── thesis.pdf
 ```
-📈 Key Takeaways
-✔ Verified reviews are consistently rated as more helpful — about 1.5x more
-✔ Emotional tone (especially trust, sadness) helps — but only if you're verified
-✔ Longer reviews + emotional language = strongest effect
-✔ High-priced products trigger more scrutiny, boosting the value of detailed and credible reviews
-✔ 26% of reviews were never marked helpful — likely due to platform visibility bias
 
-⚠️ Limitations
-Only English reviews included
-Lexicons can’t detect sarcasm, irony, or cultural nuances
-Review exposure (views, position) not directly observed
-Average review age: 7+ years — algorithms may have changed
-🚀 What’s Next?
+## 📊 Key Findings
+| Insight | Impact |
+|---------|--------|
+| ✅ Verified reviews | 1.5× more helpful votes |
+| 💬 Emotional + Verified | 22% boost in helpfulness |
+| 📝 Long + Emotional | Strongest positive effect |
+| 💰 High-price items | Detailed reviews matter most |
+| ❌ "Hidden" reviews | 26% never receive votes |
 
-Include visibility data (scroll depth, clicks)
-Study other languages and e-commerce platforms
-Mix methods: quantitative models + user interviews
+## 🧮 Methods
+- **Data**: 160K Amazon reviews (8 categories)
 
-💬 Want to Talk or Collaborate?
-📧 ekinkizildas@gmail.com
-🔗 www.linkedin.com/in/ekinkizildas
+- **Sentiment Analysis**: 
+  - AFINN (valence scoring)  
+  - BING (binary polarity)
+  - NRC (emotion lexicon)
+  
+- **Models**:
+  - Negative Binomial Regression
+  - Zero-Inflated NB (for zero votes)
+  - Interaction effects analysis
 
-Feel free to fork, cite, or reuse. Let’s make online reviews more meaningful.
+## ⚠️ Limitations
+- Lexicons can't detect sarcasm/irony
+- English-only reviews
+- Historical data (avg. 7+ years old)
+- Visibility bias not measured
 
-Kızıldaş, E. (2025). Why Do We Find Some Reviews More Helpful? The Role of Verified Status and Emotional Tone. Master’s Thesis, Humboldt-Universität zu Berlin.
+## 🚀 Future Directions
+- Incorporate review visibility metrics
+- Multilingual/cross-platform analysis
+- Deep learning for sentiment (BERT)
+- Mixed-methods approaches
 
+## 📥 Get the Data
+Download preprocessed dataset:  
+https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing 
+
+
+## 💬 Connect
+- 📧 Email: ekinkizildas@gmail.com  
+- 🔗 LinkedIn: [in/ekinkizildas](https://www.linkedin.com/in/ekinkizildas)
+- 📚 Citation:  
+ ```bibtex
+  @mastersthesis{kizildas2025reviews,
+    title  = {Why Do We Find Some Reviews More Helpful?},
+    author = {Kızıldaş, Ekin},
+    school = {Universidad Carlos III de Madrid},
+    year   = {2025}
+  }
+```
