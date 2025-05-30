@@ -1,51 +1,59 @@
 # TFM
 
-📘 Project Title:
+🧠 Why Are Some Reviews More Helpful Than Others?
 
-Why Do We Find Some Reviews More Helpful? The Role of Verified Status and Emotional Tone
+Welcome to the official repository of my master’s thesis — a deep dive into what makes online product reviews more “helpful” on platforms like Amazon. Is it just about what is written, or who writes it? Let’s find out.
 
-📄 Description
+🔍 What This Research Is About
+Every day, millions of product reviews shape consumer decisions. But not all reviews are created equal. This project asks:
+Do reviews from verified buyers get more attention?
+Does emotional language make a review more persuasive?
+How do these effects change across product types, prices, and time?
+We explore these questions through statistical modeling, sentiment analysis, and a dataset of 160,000 English-language Amazon reviews across 8 product categories.
 
-This repository contains all the code, datasets, and documentation for the master’s thesis analyzing the perceived helpfulness of Amazon product reviews. The study investigates how verified purchase status and emotional tone affect review helpfulness, using sentiment analysis and count-based regression models across 160,000 English-language reviews.
+🛠️ What’s Inside
+Cleaned Data → Pre-processed Amazon review samples
+Sentiment Analysis → Lexicon-based (AFINN, BING, NRC)
+Modeling Scripts → Poisson, Negative Binomial, and Zero-Inflated NB
+Interaction Effects → Verified × Sentiment, Length × Sentiment
+Visuals & Output → Plots, tables, and regression summaries
+Final Paper → 📄 thesis.pdf
 
-🎯 Research Objectives
+📥 Download the dataset here:
+https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing
 
-Examine how verified status influences perceived review helpfulness
-Analyze the role of emotional tone using lexicon-based sentiment analysis (AFINN, BING, NRC)
-Explore how textual features, price, review age, and product category moderate these effects
-Implement and compare count-based models: Poisson, Negative Binomial (NB), and Zero-Inflated Negative Binomial (ZINB)
-🧪 Methodology
+Folder structure:
+```
+📦 project-root/
+├── data/
+├── scripts/
+├── outputs/
+├── figures/
+└── thesis.pdf
+```
+📈 Key Takeaways
+✔ Verified reviews are consistently rated as more helpful — about 1.5x more
+✔ Emotional tone (especially trust, sadness) helps — but only if you're verified
+✔ Longer reviews + emotional language = strongest effect
+✔ High-priced products trigger more scrutiny, boosting the value of detailed and credible reviews
+✔ 26% of reviews were never marked helpful — likely due to platform visibility bias
 
-Data Source: Amazon Reviews 2023 Dataset
-Sample Size: ~160,000 reviews across 8 product categories
-Language Filter: English-only reviews
-Sentiment Analysis: AFINN, BING, NRC Lexicons
-Modeling:
-Baseline NB Model
-NB with Interaction Terms (verified × sentiment, length × sentiment)
-ZINB model to account for excess zeros
-Tools: R, tidyverse, MASS, pscl
-📁 Repository Structure
+⚠️ Limitations
+Only English reviews included
+Lexicons can’t detect sarcasm, irony, or cultural nuances
+Review exposure (views, position) not directly observed
+Average review age: 7+ years — algorithms may have changed
+🚀 What’s Next?
 
-📦 root/
-├── 📁 data/             # Cleaned review datasets (pre-processed)
-├── 📁 scripts/          # R scripts for sentiment scoring, modeling, and visualization
-├── 📁 outputs/          # Model results, figures, tables
-├── 📄 thesis.pdf        # Final thesis document
-└── 📄 README.md         # This file
-📊 Key Results
+Include visibility data (scroll depth, clicks)
+Study other languages and e-commerce platforms
+Mix methods: quantitative models + user interviews
 
-Verified reviews received ~1.5x more helpful votes
-Sentiment had stronger effects when expressed by verified users
-Emotional tone (e.g., trust, sadness) increased helpfulness in longer reviews
-ZINB model revealed 26.5% of reviews likely had no exposure (structural zeros)
-📌 Limitations
+💬 Want to Talk or Collaborate?
+📧 ekinkizildas@gmail.com
+🔗 www.linkedin.com/in/ekinkizildas
 
-Lexicon methods may not detect sarcasm or context
-Only English reviews from 8 product categories
-Visibility bias not directly measurable
-🔍 Future Work
+Feel free to fork, cite, or reuse. Let’s make online reviews more meaningful.
 
-Incorporate BERT/RoBERTa for deep sentiment modeling
-Study visibility using user behavior data
-Explore cross-linguistic and cross-platform patterns
+Kızıldaş, E. (2025). Why Do We Find Some Reviews More Helpful? The Role of Verified Status and Emotional Tone. Master’s Thesis, Humboldt-Universität zu Berlin.
+
