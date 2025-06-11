@@ -3,49 +3,33 @@
 
 🧠 Why Are Some Reviews More Helpful Than Others?
 
-Welcome to the official repository of my master's thesis exploring what
-makes online product reviews more helpful on platforms like Amazon. This
-project combines **computational social science**, **sentiment
-analysis** and **verified purchase**, and **e-commerce research** to uncover the hidden dynamics
-of review helpfulness.
+This repository contains the full research project and materials for my master's thesis submitted to Universidad Carlos III de Madrid. The study investigates what makes online product reviews more helpful on platforms like Amazon, focusing on the effects of **verified purchase status, emotional tone, and contextual variables such as price, review age, and product category**.
 
 ## 🔍 Research Questions
-- Do verified purchase reviews receive more helpful votes?
-- How does emotional language influence perceived helpfulness?
-- Do these effects vary by product category, price, or review age?
+- How does verified purchase status affect the perceived helpfulness of online reviews?
+- Does the emotional tone of a review contribute to its helpfulness?
+- Are these effects stronger when combined (e.g., emotional tone + verified status)?
+- Do contextual variables such as product price, review age, or category moderate these relationships?
 
-🔍 What This Research Is About Every day, millions of product reviews
-shape consumer decisions. But not all reviews are created equal. This
-project asks that ***Do reviews from verified buyers get more attention?
-Does emotional language make a review more persuasive? How do these
-effects change across product types, prices, and time?*** We explore
-these questions through statistical modeling, sentiment analysis, and a
-dataset of 160,000 English language Amazon reviews across 8 product
-categories.
+🧠 What This Research Is About
+Consumer decisions today are increasingly shaped by online reviews. Yet not all reviews have the same influence. This thesis analyzes 160,000 Amazon reviews across 8 product categories using sentiment analysis and count-based regression models to examine how emotional tone and reviewer credibility (verified status) affect helpfulness votes.
 
-
-📥 Download the dataset here:
-<https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing>
 
 ## 🛠️ Repository Contents
 
 ```         
-📦 project-root/
-├── data/
-├── scripts/
-├── outputs/
-├── figures/
-└── thesis.pdf
+
 ```
 
 ## 📊 Key Findings
-| Insight | Impact |
-|---------|--------|
-| ✅ Verified reviews | 1.5× more helpful votes |
-| 💬 Emotional + Verified | 22% boost in helpfulness |
-| 📝 Long + Emotional | Strongest positive effect |
-| 💰 High-price items | Detailed reviews matter most |
-| ❌ "Hidden" reviews | 26% never receive votes |
+| Insight                    | Impact                                      |
+| -------------------------- | ------------------------------------------- |
+| ✅ Verified reviews         | Receive significantly more helpful votes    |
+| 💬 Verified + Emotional    | Combination shows amplified effectiveness   |
+| 📝 Long, emotional reviews | Perform best in terms of helpfulness        |
+| 💰 High-priced products    | Reviews tend to be evaluated more carefully |
+| ❌ Low-engagement reviews   | 26% receive no helpful votes at all         |
+
 
 ## 🧮 Methods
 - **Data**: 160K Amazon reviews (8 categories)
@@ -57,20 +41,20 @@ categories.
   
 - **Models**:
   - Negative Binomial Regression
-  - Zero-Inflated NB (for zero votes)
-  - Interaction effects analysis
+  - Zero-Inflated NB 
+  - Interaction models
 
 ## ⚠️ Limitations
-- Lexicons can't detect sarcasm/irony
-- English-only reviews
-- Historical data (avg. 7+ years old)
-- Visibility bias not measured
+- Lexicon based sentiment tools miss sarcasm or contextual cues
+- English only reviews
+- Historical data (average review age: 7.4 years)
+- Visibility bias (e.g., review position on page) not accounted for
 
 ## 🚀 Future Directions
-- Incorporate review visibility metrics
-- Multilingual/cross-platform analysis
-- Deep learning for sentiment (BERT)
-- Mixed-methods approaches
+- Use of transformer-based models like BERT for deeper emotional analysis
+- Incorporation of review visibility data (e.g., impressions or clicks)
+- Cross-platform and multilingual replication studies
+- Combining quantitative and qualitative methods
 
 ## 📥 Get the Data
 Download preprocessed dataset:  
@@ -83,7 +67,7 @@ https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=shari
 - 📚 Citation:  
  ```bibtex
   @mastersthesis{kizildas2025reviews,
-    title  = {Why Do We Find Some Reviews More Helpful?},
+    title  = {Why Do We Find Some Reviews More Helpful? The Role of Verified Status and Emotional Tone},
     author = {Kızıldaş, Ekin},
     school = {Universidad Carlos III de Madrid},
     year   = {2025}
