@@ -1,0 +1,223 @@
+---
+title: "Preprocessing Data"
+author: "Ekin Kizildas"
+date: "2025-06-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction 
+
+The review and metadata datasets used in this study were obtained from the Amazon Reviews 2023 dataset, which is publicly available at [https://amazon-reviews-2023.github.io](https://amazon-reviews-2023.github.io).
+
+This dataset provides a large-scale collection of Amazon product reviews and associated metadata across multiple product categories.  It includes review-level information such as text content, rating, timestamp, and verified purchase status, as well as product-level data including title, average rating, and price.
+
+
+# Required packages
+
+The necessary R packages are loaded to handle data import, transformation, and language detection.  These include jsonlite for reading JSONL files, tidyverse for data manipulation, purrr for functional operations, and cld2 for language detection.
+
+
+
+```{r}
+library(jsonlite)
+library(tidyverse)
+library(purrr)
+library(cld2)
+```
+
+#Dataset
+
+A utility operator (%||%) is defined to handle null values, allowing a default value to be assigned when a field is missing in the data.
+
+```{r}
+`%||%` <- function(a, b) if (!is.null(a)) a else b
+```
+
+## Review Data
+
+Customer review data are read from eight different product categories, each stored as a JSON Lines (.jsonl) file.  To ensure the integrity of the data, only reviews written in English and containing both non-empty text and a valid helpful vote count are retained. The reviews are parsed line by line and structured into a tidy data frame.
+
+
+```{r}
+
+read_jsonl_sample <- function(file_path, n_max = 500000, english_only = TRUE) {
+  lines <- readLines(file_path, n = n_max)
+  
+  data_list <- lapply(lines, function(x) {
+    parsed <- tryCatch(fromJSON(x), error = function(e) NULL)
+    if (is.null(parsed)) return(NULL)
+
+    text_val <- parsed$text %||% NA
+    helpful  <- parsed$helpful_vote %||% NA
+
+    if (is.na(text_val) || str_trim(text_val) == "") return(NULL)
+    if (is.na(helpful)) return(NULL)  
+
+    if (english_only) {
+      lang <- detect_language(text_val)
+      if (is.na(lang) || lang != "en") return(NULL)
+    }
+
+    tibble(
+      asin              = parsed$asin %||% NA,
+      text              = text_val,
+      rating            = parsed$rating %||% NA,
+      title             = parsed$title %||% NA,
+      helpful_vote      = helpful,
+      verified_purchase = parsed$verified_purchase %||% NA,
+      parent_asin       = parsed$parent_asin %||% NA,
+      user_id           = parsed$user_id %||% NA,
+      timestamp         = parsed$timestamp %||% NA
+    )
+  })
+  
+  df <- bind_rows(data_list)
+  return(df)
+}
+```
+
+```{r}
+books_review <- read_jsonl_sample("Books.jsonl", english_only = TRUE)
+beauty_review  <- read_jsonl_sample("All_Beauty.jsonl", english_only = TRUE)
+fashion_review <- read_jsonl_sample("Amazon_Fashion.jsonl", english_only = TRUE)
+electronics_review <- read_jsonl_sample("Electronics.jsonl", english_only = TRUE)
+appliances_review  <- read_jsonl_sample("Appliances.jsonl", english_only = TRUE)
+beauty2_review <- read_jsonl_sample("Beauty_and_Personal_Care.jsonl", english_only = TRUE)
+pet_review     <- read_jsonl_sample("Pet_Supplies.jsonl", english_only = TRUE)
+software_review<- read_jsonl_sample("Software.jsonl", english_only = TRUE)
+```
+
+## Metadata
+
+Each product's associated metadata is read from separate JSONL files. 
+Metadata fields include product title, average rating, rating count, store name, and price. Non-English entries and entries with missing or empty titles are excluded.
+Prices are cleaned and converted into numeric format for further analysis.
+
+```{r}
+read_clean_meta <- function(file_path, n_max = 500000, english_only = TRUE) {
+  lines <- readLines(file_path, n = n_max)
+  
+  meta_data <- lapply(lines, function(x) {
+    parsed <- tryCatch(fromJSON(x), error = function(e) NULL)
+    if (is.null(parsed)) return(NULL)
+    
+    title_val <- parsed$title %||% NA
+    if (is.na(title_val) || str_trim(title_val) == "") return(NULL)
+    
+    if (english_only) {
+      lang <- detect_language(title_val)
+      if (is.na(lang) || lang != "en") return(NULL)
+    }
+
+    price_clean <- parsed$price %||% NA
+    if (is.character(price_clean)) {
+      price_clean <- as.numeric(gsub("[^0-9\\.]", "", price_clean))
+    }
+
+    tibble(
+      main_category   = parsed$main_category %||% NA,
+      title           = title_val,
+      average_rating  = parsed$average_rating %||% NA,
+      rating_number   = parsed$rating_number %||% NA,
+      store           = parsed$store %||% NA,
+      parent_asin     = parsed$parent_asin %||% NA,
+      price           = price_clean
+    )
+  })
+  
+  df <- bind_rows(meta_data)
+  return(df)
+}
+```
+
+
+
+```{r}
+
+books_meta <- read_clean_meta("meta_Books.jsonl", english_only = TRUE)
+beauty_meta    <- read_clean_meta("meta_All_Beauty.jsonl", english_only = TRUE)
+fashion_meta   <- read_clean_meta("meta_Amazon_Fashion.jsonl", english_only = TRUE)
+electronics_meta <- read_clean_meta("meta_Electronics.jsonl", english_only = TRUE)
+appliances_meta  <- read_clean_meta("meta_Appliances.jsonl", english_only = TRUE)
+beauty2_meta <- read_clean_meta("meta_Beauty_and_Personal_Care.jsonl", english_only = TRUE)
+pet_meta     <- read_clean_meta("meta_Pet_Supplies.jsonl", english_only = TRUE)
+software_meta<- read_clean_meta("meta_Software.jsonl", english_only = TRUE)
+```
+
+## Merge Review and Metadata
+
+Review and metadata files are merged using the product identifier (ASIN and parent_asin).  This step enables the combination of review-level and product-level information in a unified dataset, enriching the review records with product context.
+
+
+```{r}
+#merged
+beauty_merged <- inner_join(beauty_review, beauty_meta, by = c("asin" = "parent_asin"))
+fashion_merged <- inner_join(fashion_review, fashion_meta, by = c("asin" = "parent_asin"))
+electronics_merged <- inner_join(electronics_review, electronics_meta, by = c("asin" = "parent_asin"))
+appliances_merged <- inner_join(appliances_review, appliances_meta, by = c("asin" = "parent_asin"))
+beauty2_merged<- inner_join(beauty2_review, beauty2_meta, by = c("asin" = "parent_asin")) 
+
+books_merged <- inner_join(books_review, books_meta, by = c("asin" = "parent_asin")) 
+pet_merged <- inner_join(pet_review, pet_meta, by = c("asin" = "parent_asin"))
+
+software_merged <- inner_join(software_review, software_meta, by = c("asin" = "parent_asin"))
+
+```
+
+##Balance Samples for Verified and Unverified Reviews
+
+To address potential imbalance between verified and unverified reviews, stratified sampling is performed.  For each product category, an equal number of verified and unverified reviews are randomly selected, and the resulting dataset is labeled with the corresponding product category.
+
+
+```{r}
+balanced_sample <- function(df, size_per_group = 10000, category_name = "Unknown") {
+  df <- df %>% filter(!is.na(verified_purchase))
+  
+  true_n  <- sum(df$verified_purchase == TRUE)
+  false_n <- sum(df$verified_purchase == FALSE)
+  min_n <- min(true_n, false_n, size_per_group)
+  
+  sample_true <- df %>% filter(verified_purchase == TRUE) %>% sample_n(min_n)
+  sample_false <- df %>% filter(verified_purchase == FALSE) %>% sample_n(min_n)
+  
+  bind_rows(sample_true, sample_false) %>%
+    mutate(category = category_name)
+}
+```
+
+
+```{r}
+set.seed(42)
+
+beauty_sample      <- balanced_sample(beauty_merged, 10000, "Beauty")
+fashion_sample     <- balanced_sample(fashion_merged, 10000, "Fashion")
+electronics_sample <- balanced_sample(electronics_merged, 10000, "Electronics")
+appliances_sample  <- balanced_sample(appliances_merged, 10000, "Appliances")
+beauty2_sample     <- balanced_sample(beauty2_merged, 10000, "Beauty_Personal_Care")
+books_sample       <- balanced_sample(books_merged, 10000, "Books")
+pet_sample         <- balanced_sample(pet_merged, 10000, "Pet_Supplies")
+software_sample    <- balanced_sample(software_merged, 10000, "Software")
+```
+
+
+
+##Combining All Balanced Samples
+
+All balanced category-specific datasets are combined into a single data frame.This final dataset forms the basis for subsequent exploratory and statistical analysis, ensuring consistency and comparability across product categories.
+
+```{r}
+sample_data_balanced <- bind_rows(
+  beauty_sample,
+  fashion_sample,
+  electronics_sample,
+  appliances_sample,
+  beauty2_sample,
+  books_sample,
+  pet_sample,
+  software_sample
+)
+```

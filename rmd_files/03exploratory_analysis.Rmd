@@ -1,0 +1,689 @@
+---
+title: "exploratory_analysis.Rmd"
+author: "Ekin Kizildas"
+date: "2025-06-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(syuzhet)
+library(gt)
+library(tidytext)
+library(corrplot)
+library(dotwhisker)
+library(broom)
+library(pscl)
+library(flextable)
+library(kableExtra)
+library(knitr)
+
+
+```
+
+To begin the exploratory analysis, the preprocessed and cleaned dataset is loaded from an external R script. This script includes all previous data wrangling steps to ensure the consistency and readiness of the dataset for further analysis.
+
+```{r}
+source("extracted_data_cleaning_code.R", local = knitr::knit_global())
+```
+
+## 3. Descriptive Statistics
+
+To understand the overall structure and central tendencies of the dataset, several descriptive statistics are computed at both global and category-specific levels. These summaries offer insights into key variables such as helpfulness, review length, sentiment score, and product price.
+
+##3.1. Overall Summary Statistics
+
+The following output displays a basic summary of selected numeric variables and aggregated descriptive measures across the entire dataset.
+
+```{r}
+summary(sample_data %>% 
+          dplyr::select(helpful_vote, review_length, review_age, sentiment_score, price))
+
+ gt(sample_data %>%
+  summarise(
+    Count = n(),
+    `Helpful Rate (%)` = round(mean(helpful_binary, na.rm = TRUE) * 100, 1),
+    `Avg. Helpful Votes` = round(mean(helpful_vote, na.rm = TRUE), 2),
+    `Avg. Review Length` = round(mean(review_length, na.rm = TRUE), 0),
+    `Avg. Review Age (days)` = round(mean(review_age, na.rm = TRUE), 0),
+    `Avg. Sentiment Score` = round(mean(sentiment_score, na.rm = TRUE), 2),
+    `Avg. Price ($)` = round(mean(price, na.rm = TRUE), 2)
+  ))
+
+
+```
+## 3.2. Summary by Product Category
+T
+o detect differences across product types, the dataset is grouped by category. For each category, key indicators such as average helpful votes and sentiment scores are calculated.
+
+```{r}
+
+category_summary <- sample_data %>%
+  group_by(category) %>%
+  summarise(
+    Count = n(),
+    `Helpful Rate (%)` = round(mean(helpful_binary) * 100, 1),
+    `Avg. Sentiment` = round(mean(sentiment_score, na.rm = TRUE), 2),
+    `Avg. Review Length` = round(mean(review_length, na.rm = TRUE), 0),
+    `Avg. Price ($)` = round(mean(price, na.rm = TRUE), 2)
+  )
+
+gt(category_summary)
+
+
+
+```
+
+
+
+##3.3. Most Helpful Reviews
+
+This section presents the top 10 reviews with the highest number of helpful votes to illustrate examples of reviews deemed valuable by other users.
+
+```{r}
+sample_data %>%
+  arrange(desc(helpful_vote)) %>%
+  dplyr::select(helpful_vote, verified_purchase, rating, sentiment_score, text) %>%
+  head(10)
+
+
+```
+##3.4. Reviews with the Highest Joy Scores
+
+To explore the emotional landscape of the reviews, those with the highest "joy" scores are highlighted. This helps identify highly positive review examples.
+
+```{r}
+sample_data %>%
+  arrange(desc(joy)) %>%
+  dplyr::select(joy, helpful_vote, rating, text) %>%
+  head(5)
+
+```
+##3.5. Review Length Group Analysis
+
+
+To investigate how the length of a review relates to its helpfulness and sentiment, reviews are grouped into three categories based on their character count: Short (<100), Medium (100–499), and Long (≥500). For each group, the average number of helpful votes, average sentiment score, and total count are calculated.
+
+```{r}
+ sample_data %>%
+  mutate(length_group = case_when(
+    review_length < 100 ~ "Short",
+    review_length < 500 ~ "Medium",
+    TRUE ~ "Long"
+  )) %>%
+  group_by(length_group) %>%
+  summarise(avg_helpful = mean(helpful_vote),
+            avg_sentiment = mean(sentiment_score),
+            count = n())
+
+```
+
+##3.6. Extreme Sentiment Reviews
+Reviews with extreme sentiment scores are isolated to better understand the characteristics of emotionally intense feedback.
+
+```{r}
+sample_data %>%
+  filter(sentiment_score > 8 | sentiment_score < -8) %>%
+  dplyr::select(sentiment_score, helpful_vote, rating, text) %>%
+  head(10)
+
+```
+
+##3.7. Normalized Sentiment
+To adjust for the impact of review length on sentiment magnitude, a normalized sentiment score is computed by scaling sentiment per 100 characters.
+
+```{r}
+sample_data <- sample_data %>%
+  mutate(sentiment_per_100 = (sentiment_score / review_length) * 100)
+
+```
+
+
+
+
+## 4. Visualizations
+
+This histogram displays the distribution of product reviews that received up to 20 helpful votes. The data reveal a right-skewed pattern, indicating that the vast majority of reviews receive very few helpful votes. This suggests that many reviews remain largely unseen or engage few users. The concentration of helpful votes in a limited number of reviews highlights the uneven visibility and engagement dynamics within the platform.
+
+```{r}
+ggplot(sample_data %>% filter(helpful_vote <= 20), aes(x = helpful_vote)) +
+  geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
+  labs(
+    title = "Distribution of Helpful Votes",
+    x = "Helpful Votes",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+
+This bar chart illustrates the proportion of reviews marked as helpful across different product categories. Categories are ordered by helpfulness rate, from highest to lowest. The plot highlights that certain product categories receive a consistently higher share of helpful reviews, suggesting that the perceived usefulness of reviews may vary depending on the type of product. This could reflect differences in consumer engagement, product complexity, or the relevance of review content across categories.
+```{r}
+sample_data %>%
+  group_by(category) %>%
+  summarise(helpful_rate = mean(helpful_binary)) %>%
+  ggplot(aes(x = reorder(category, -helpful_rate), y = helpful_rate)) +
+  geom_col(fill = "#00BFC4") +
+  labs(title = "Helpful Review Rate by Product Category",
+       x = "Category", y = "Helpful Rate") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+This histogram shows the distribution of review lengths, measured by the number of characters. Most reviews fall within the shorter to medium length range, with a gradual decline in frequency as the length increases. The x-axis is limited to 1,500 characters to focus on the majority of reviews and reduce the influence of extreme outliers. This visualization helps identify common patterns in review verbosity and supports further analysis on how review length may relate to perceived helpfulness.
+
+
+```{r}
+ggplot(sample_data, aes(x = review_length)) +
+  geom_histogram(binwidth = 50, fill = "#00BFC4", color = "white") +
+  scale_x_continuous(limits = c(0, 1500)) +
+  labs(
+    title = "Distribution of Review Lengths",
+    x = "Number of Characters", y = "Count of Reviews"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+This histogram shows the distribution of AFINN sentiment scores across reviews. Most scores are centered around zero, indicating that reviews tend to be emotionally neutral or only mildly expressive. Extreme positive or negative sentiments are relatively uncommon.
+
+
+```{r}
+ggplot(sample_data, aes(x = sentiment_score)) +
+  geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
+  labs(
+    title = "Distribution of Sentiment Scores(AFINN)",
+    x = "Sentiment Score", y = "Number of Reviews"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+This histogram presents the distribution of sentiment scores calculated using the BING lexicon, which classifies words as either positive or negative.
+
+```{r}
+ggplot(sample_data, aes(x = bing_score)) +
+  geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
+  labs(
+    title = "Distribution of Sentiment Scores (BING)",
+    x = "Sentiment Score", y = "Number of Reviews"
+  ) +
+  theme_minimal()
+
+
+```
+
+
+
+
+This histogram visualizes the distribution of product prices in the dataset, limited to a maximum of $300.
+
+```{r}
+ggplot(sample_data, aes(x = price)) +
+  geom_histogram(binwidth = 5, fill = "#00BFC4", color = "white") +
+  scale_x_continuous(limits = c(0, 300)) +
+  labs(
+    title = "Distribution of Product Prices",
+    x = "Price ", y = "Number of Products"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+This plot displays the density distributions of AFINN sentiment scores across different product categories. Each facet represents a separate category, allowing for comparison of sentiment patterns within and between groups. The x-axis is limited to scores between 0 and 25 to focus on the most common sentiment range.
+
+```{r}
+ggplot(sample_data, aes(x = sentiment_score, fill = category)) +
+  geom_density(alpha = 0.6, color = "black") +
+  xlim(0, 25) +
+  facet_wrap(~category, scales = "free_y") +
+    scale_fill_manual(values = rep("#00BFC4", length(unique(sample_data$category)))) +
+  labs(
+    title = "Sentiment Distribution by Product Category (AFINN)",
+    x = "Sentiment Score", y = "Density"
+  ) +
+  theme_minimal()+
+  theme(legend.position = "none")
+
+
+```
+
+
+This density plot illustrates the distribution of BING sentiment scores across various product categories. Each panel (facet) corresponds to a specific category, allowing a side-by-side view of how sentiment varies. The x-axis is restricted to scores between 0 and 25 to highlight the most concentrated sentiment range.
+
+```{r}
+ggplot(sample_data, aes(x = bing_score, fill = category)) +
+  geom_density(alpha = 0.6, color = "black") +
+  xlim(0, 25) +
+  facet_wrap(~category, scales = "free_y") +
+    scale_fill_manual(values = rep("#00BFC4", length(unique(sample_data$category)))) +
+  labs(
+    title = "Sentiment Distribution by Product Category (BING)",
+    x = "Sentiment Score", y = "Density"
+  ) +
+  theme_minimal()+
+  theme(legend.position = "none") 
+
+ggsave("sentimentd_bing.png", plot = last_plot(), width = 10, height = 6, dpi = 300)
+
+```
+
+
+This bar chart displays the average emotion scores across all reviews, based on the NRC emotion lexicon. Each bar represents the mean occurrence of a specific emotion (e.g., joy, trust, anger) normalized across the dataset, providing an overview of the emotional tone present in the text corpus.
+
+```{r}
+
+overall_emotion_summary <- sample_data %>%
+  summarise(across(c(joy, trust, fear, anger, sadness, disgust, surprise, anticipation),
+                   mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = everything(), names_to = "emotion", values_to = "mean_value")
+
+ggplot(overall_emotion_summary, aes(x = reorder(emotion, -mean_value), y = mean_value)) +
+  geom_col(show.legend = FALSE,fill = "#00BFC4") +
+  labs(title = "Average Emotion Scores (Overall)",
+       x = "Emotion", y = "Mean Score") +
+  theme_minimal()
+
+
+```
+
+This bar chart shows the average number of helpful votes received by reviews, grouped by whether the reviewer was a verified purchaser. It visually compares the perceived helpfulness between verified and non-verified reviews.
+
+```{r}
+sample_data %>%
+  group_by(verified_purchase) %>%
+  summarise(avg_helpful = mean(helpful_vote, na.rm = TRUE)) %>%
+  ggplot(aes(x = as.factor(verified_purchase), y = avg_helpful, fill = as.factor(verified_purchase))) +
+ geom_col(fill = "#00BFC4")+
+  scale_x_discrete(labels = c("0" = "Not Verified", "1" = "Verified")) +
+  labs(
+    title = "Average Helpful Votes by Verified Status",
+    x = "Verified Purchase",
+    y = "Average Helpful Votes"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+```
+
+
+This scatter plot illustrates the relationship between review age (in days) and the number of helpful votes a review has received. Both variables are log-transformed to handle skewed distributions. A LOESS trend line is added to visualize the overall pattern in the data.
+
+```{r}
+sample_data %>%
+  filter(review_age > 0) %>%
+  ggplot(aes(x = log10(review_age), y = log10(helpful_vote + 1))) +
+  geom_point(alpha = 0.3, color = "#00BFC4") +
+  geom_smooth(method = "loess", se = FALSE, color = "black", linetype = "dashed") +
+  labs(
+    title = "Relationship Between Review Age and Helpful Votes ",
+    x = "Review Age",
+    y = "Helpful Votes ",
+    caption = "0 helpful votes included using log10(helpful_vote + 1)"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+This bar chart displays the distribution of reviews based on their verified purchase status. The x-axis categorizes reviews as either "Verified" or "Not Verified", while the y-axis represents the total number of reviews in each group. The chart provides an overview of the relative volume of verified and unverified reviews in the dataset, which is useful for understanding the underlying balance in purchase credibility.
+
+```{r}
+
+sample_data %>%
+  count(verified_purchase) %>%
+  ggplot(aes(x = as.factor(verified_purchase), y = n, fill = as.factor(verified_purchase))) +
+   geom_col(fill = "#00BFC4")+
+  scale_x_discrete(labels = c("0" = "Not Verified", "1" = "Verified")) +
+  labs(
+    title = "Distribution of Verified Purchase Status",
+    x = "Verified Purchase",
+    y = "Number of Reviews"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+
+
+
+```
+
+
+
+
+
+```{r}
+
+
+sample_data$review_year <- format(as.Date(sample_data$review_date), "%Y")
+
+temporal_summary <- sample_data %>%
+  group_by(review_year, verified_purchase) %>%
+  summarise(mean_age = mean(review_age, na.rm = TRUE),
+            count = n()) %>%
+  ungroup()
+
+
+```
+
+
+This line chart visualizes the yearly proportion of verified and non-verified reviews. The x-axis represents the year in which the review was posted, while the y-axis shows the percentage of reviews that were either verified or not verified. By plotting these trends over time, the chart helps reveal shifts in platform authenticity, such as an increase in verified purchases, which may reflect changes in platform policy or user behavior.
+
+```{r}
+
+temporal_verified <- sample_data %>%
+  group_by(review_year) %>%
+  summarise(
+    verified = mean(verified_purchase == TRUE, na.rm = TRUE),
+    non_verified = mean(verified_purchase == FALSE, na.rm = TRUE)
+  ) %>%
+  pivot_longer(cols = c("verified", "non_verified"), names_to = "type", values_to = "rate")
+
+
+ggplot(temporal_verified, aes(x = as.numeric(review_year), y = rate, color = type)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  scale_color_manual(values = c("verified" = "#1F78B4", "non_verified" = "#E31A1C"),
+                     labels = c("Verified", "Not Verified")) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(
+    title = "Verified vs. Non-Verified Reviews Over Time",
+    x = "Review Year",
+    y = "Review Proportion (%)",
+    color = "Review Type"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+This bar chart displays the frequency distribution of star ratings assigned to reviews. The x-axis represents the rating values (typically from 1 to 5 stars), while the y-axis shows the number of reviews for each rating. This visualization provides insight into the overall satisfaction levels of customers.
+
+
+```{r}
+ggplot(sample_data, aes(x = rating)) +
+  geom_bar(fill = "#00BFC4") +
+  labs(title = "Distribution of Star Ratings")
+
+```
+
+This bar chart presents the average number of helpful votes received for reviews at each star rating level. The x-axis indicates the star rating, while the y-axis shows the corresponding average helpful vote count. This visualization helps identify how perceived helpfulness varies with customer satisfaction levels.
+
+```{r}
+ggplot(sample_data, aes(x = rating, y = helpful_vote)) +
+  stat_summary(fun = mean, geom = "col", fill = "#00BFC4") +
+  labs(title = "Average Helpful Votes by Rating")
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r}
+sample_data <- sample_data %>%
+  mutate(review_age_group = case_when(
+    review_age < 1000 ~ "Recent",
+    review_age >= 1000 & review_age < 3000 ~ "Medium",
+    review_age >= 3000 ~ "Old"
+  ))
+
+
+
+summary_data <- sample_data %>%
+  group_by(rating, verified_purchase, review_age_group) %>%
+  summarise(avg_helpful = mean(helpful_vote, na.rm = TRUE)) %>%
+  ungroup()
+
+
+```
+
+
+This plot shows how helpfulness scores vary depending on the star rating, whether the review is from a verified purchaser, and how old the review is. By breaking the data into different age groups, it helps highlight how the relationship between rating and helpfulness can shift over time and between verified and non-verified reviews.
+
+```{r}
+
+ggplot(summary_data, aes(x = factor(rating), y = avg_helpful, color = as.factor(verified_purchase), group = verified_purchase)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 2) +
+  facet_wrap(~ review_age_group) +
+  scale_color_manual(values = c("#E41A1C", "#377EB8"), labels = c("Not Verified", "Verified")) +
+  labs(
+    title = "Interaction Between Star Rating, Verified Purchase, and Review Age on Review Helpfulness",
+    x = "Star Rating",
+    y = "Average Helpful Votes",
+    color = "Verified Purchase"
+  ) +
+  theme_minimal(base_size = 13)
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+sample_data <- sample_data %>%
+  mutate(length_group = cut(review_length,
+                            breaks = quantile(review_length, probs = c(0, 0.33, 0.66, 1), na.rm = TRUE),
+                            labels = c("Short", "Medium", "Long"),
+                            include.lowest = TRUE))
+
+```
+
+This scatter plot explores the relationship between the sentiment score (measured using the AFINN lexicon) and the length of the review. Review lengths are log-transformed for better visualization, and reviews are grouped by length category (Short, Medium, Long) to observe patterns across different types. A LOESS trend line is added to highlight the general trend within each group
+
+
+```{r}
+sample_data %>%
+  ggplot(aes(x = sentiment_score, y = log(review_length + 1), color = length_group)) +
+  geom_point(alpha = 0.2, size = 0.8) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(
+    title = "Relationship Between Review Length and Afinn Score",
+    x = "AFINN Sentiment Score",
+    y = "Log Review Length"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+
+```{r}
+sample_data %>%
+  ggplot(aes(x = bing_score, y = log(review_length + 1), color = length_group)) +
+  geom_point(alpha = 0.2, size = 0.8) +
+  geom_smooth(method = "loess", se = FALSE) +
+  labs(
+    title = "Relationship Between Review Length and Bing Sentiment Score",
+    x = "Bing Sentiment Score",
+    y = "Log Review Length"
+  ) +
+  theme_minimal()
+
+
+```
+
+
+This line plot compares the average NRC sentiment scores across different review length groups (Short, Medium, Long). Each line represents a specific emotion, helping to visualize how emotional tone varies with the length of a review.
+
+```{r}
+
+
+sample_data %>%
+  group_by(length_group) %>%
+  summarise(across(c(anger, anticipation, disgust, fear, joy, negative, positive, sadness, surprise, trust), 
+                   mean, na.rm = TRUE)) %>%
+  pivot_longer(cols = -length_group, names_to = "sentiment", values_to = "mean_score") %>%
+  ggplot(aes(x = length_group, y = mean_score, color = sentiment, group = sentiment)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  labs(
+    title = "Average NRC Sentiment Scores by Review Length Groups",
+    x = "Review Length Groups",
+    y = "Average Sentiment Score",
+    color = "Sentiment"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "bottom"
+  )
+
+
+
+```
+
+This violin plot displays the distribution of helpful votes across different product categories. The y-axis is log-transformed to better visualize the wide range of vote counts, revealing how the helpfulness of reviews varies by category.
+
+```{r}
+
+ggplot(sample_data, aes(x = category, y = helpful_vote)) +
+  geom_violin(fill = "#00BFC4") +
+  scale_y_log10() +
+  labs(
+    title = "Helpful Votes Distribution by Category",
+    x = "Category",
+    y = "Helpful Votes (Log)"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+This combined histogram and density plot illustrates the distribution of review age in days, showing how recent or old the reviews are within the dataset. The histogram captures the frequency of reviews by age, while the overlaid density curve highlights the overall trend in their temporal distribution.
+
+```{r}
+
+
+ggplot(sample_data, aes(x = review_age)) +
+  geom_histogram(bins = 50, fill = "#00BFC4", color = "white", alpha = 0.8) +
+  geom_density(aes(y = ..count..), color = "black", size = 1, adjust = 1.5) +
+  labs(
+    title = "Distribution of Review Age (days)",
+    x = "Review Age (days)",
+    y = "Number of Reviews"
+  ) +
+  theme_minimal()
+
+
+
+```
+
+
+This summary table shows how review characteristics differ across product categories and verified purchase status. It includes the number of reviews, average helpful votes, review length, star rating, and AFINN sentiment score for each group, offering a quick overview of key patterns in the data.
+
+```{r}
+
+summary_table <- sample_data %>%
+  group_by(category, verified_purchase) %>%
+  summarise(
+    N = n(),
+    Avg_Helpful = mean(helpful_vote, na.rm = TRUE),
+    Avg_Length = mean(review_length, na.rm = TRUE),
+    Avg_Rating = mean(rating, na.rm = TRUE),
+    Avg_Afinn = mean(sentiment_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+
+```
+
+
+This code builds a summary table that adds Bing sentiment proportions to the previous category-level overview. For each product category and verification status, it calculates the percentage of reviews labeled as positive, neutral, or negative based on the Bing lexicon. These percentages are then merged with the earlier summary (which included helpfulness, length, rating, and AFINN score), resulting in a more complete view of how emotional tone and review quality vary across groups. Finally, the table is formatted using flextable for clearer presentation.
+
+```{r}
+
+bing_pct_table <- sample_data %>%
+  filter(!is.na(bing_label)) %>%
+  group_by(category, verified_purchase, bing_label) %>%
+  summarise(N = n(), .groups = "drop") %>%
+  group_by(category, verified_purchase) %>%
+  mutate(Share = N / sum(N)) %>%
+  dplyr::select(-N) %>%
+  pivot_wider(names_from = bing_label, values_from = Share, values_fill = 0) %>%
+  mutate(
+    Percent_Negative = round(Negative * 100, 1),
+    Percent_Positive = round(Positive * 100, 1),
+    Percent_Neutral = round(Neutral * 100, 1)
+  ) %>%
+  dplyr::select(category, verified_purchase, Percent_Negative, Percent_Neutral, Percent_Positive)
+
+final_summary <- left_join(summary_table, bing_pct_table, 
+                           by = c("category", "verified_purchase"))
+
+
+
+colnames(final_summary)[colnames(final_summary) == "Percent_Negative"] <- "BING_Negative (%)"
+colnames(final_summary)[colnames(final_summary) == "Percent_Positive"] <- "BING_Positive (%)"
+colnames(final_summary)[colnames(final_summary) == "Percent_Neutral"]  <- "BING_Neutral (%)"
+
+
+
+b <- final_summary %>%
+  flextable() %>%
+  set_header_labels(
+    category = "Category",
+    verified_purchase = "Verified",
+    Avg_Helpful = "Avg. Helpful",
+    Avg_Length = "Avg. Length",
+    Avg_Rating = "Avg. Rating",
+    Avg_Afinn = "AFINN (Mean)",
+    `BING_Negative (%)` = "BING Negative (%)",
+    `BING_Positive (%)` = "BING Positive (%)"
+  ) %>%
+  fontsize(part = "header", size = 11) %>%  
+  fontsize(part = "body", size = 10) %>%
+  font(part = "all", fontname = "Times New Roman") %>%
+  autofit()
+
+
+
+
+
+```
+
+```{r}
+purl("exploratory_analysis.Rmd", output = "extracted_exploratory_analysis_code.R")
+```
+
+

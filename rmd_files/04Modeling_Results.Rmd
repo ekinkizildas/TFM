@@ -1,0 +1,897 @@
+---
+title: "Modeling_Results"
+author: "Ekin Kizildas"
+date: "2025-06-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+``` 
+## Packages 
+
+```{r}
+library(tidyverse)      
+library(MASS)           
+library(pscl)           
+library(car)            
+library(broom)          
+library(modelsummary)   
+library(flextable)      
+library(officer)        
+library(corrplot)       
+library(knitr)          
+
+```
+
+Prior to modeling, the cleaned and preprocessed dataset is loaded using the following command:
+
+```{r}
+source("extracted_data_cleaning_code.R", local = knitr::knit_global())
+```
+
+
+
+## 5. Correlation Matrix
+
+A correlation matrix is computed to examine the linear relationships between key numerical variables, including review characteristics (e.g., length, rating, age, price) and sentiment scores derived from both lexicon-based methods (e.g., AFINN, BING) and emotion dimensions (e.g., joy, trust, anger).
+
+```{r}
+corr <- sample_data %>%
+  dplyr::select(
+    helpful_vote, rating, sentiment_score, review_length, review_age, price,
+    positive, negative, trust, joy, fear, anger, anticipation, sadness, surprise, disgust, bing_score
+  ) %>%
+  cor(use = "complete.obs") %>%
+  round(2)
+
+
+corrplot(corr, method = "color", type = "upper",
+         tl.col = "black", tl.srt = 45,
+         title = "Correlation Matrix: Review Features and Emotions",
+         mar = c(0, 0, 1, 0))
+```
+
+
+
+
+
+## Modeling part
+
+To prepare the data for modeling, the verified_purchase variable is converted to a factor to ensure proper treatment as a categorical predictor in regression models. Additionally, all continuous predictors are standardized (z-scores) to facilitate interpretation and allow for meaningful comparison of coefficients across different scales.
+
+```{r}
+# Converting verified_purchase to factor
+sample_data$verified_purchase <- as.factor(sample_data$verified_purchase)
+
+# Standardizing data
+standardized_data <- sample_data %>%
+  mutate(across(
+    c(sentiment_score, review_length, rating, price, review_age, bing_score,
+      joy, trust, fear, anger, sadness, disgust, surprise, anticipation),
+    ~ scale(.) %>% as.numeric()
+  ))
+
+
+
+```
+
+### Model1
+
+This baseline Negative Binomial model predicts the number of helpful votes a review receives based on verified purchase status, sentiment scores (AFINN and BING), review length, star rating, review age, price, and product category. It serves to evaluate how both emotional tone and contextual features shape perceived helpfulness, while accounting for overdispersion in the count data.
+
+
+```{r}
+
+model1 <- glm.nb(helpful_vote ~ 
+                     verified_purchase + sentiment_score + bing_score + review_length + 
+                     rating + review_age + price + category ,
+                   data = standardized_data)
+
+summary(model1)
+
+```
+
+
+```{r}
+
+# Making a table
+tidy(model1) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+
+```
+
+This code produces a clean summary table of the baseline Negative Binomial model using the modelsummary package. It displays the estimated coefficients alongside their standard errors, rounds values to three decimal places, and uses stars to indicate statistical significance. The output is formatted as a flextable for seamless export to Word or PDF.
+
+```{r}
+
+
+modelsummary(model1,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable") 
+
+```
+
+
+### Model 2
+
+This model extends the baseline Negative Binomial regression by incorporating two interaction terms: one between verified purchase status and sentiment score, and another between verified status and BING sentiment score. These interactions aim to capture whether the effect of sentiment on helpfulness varies depending on whether the reviewer is verified. Other variables like rating, review length, age, price, and product category are included as controls.
+
+```{r}
+# Negative Binomial with interaction
+model2 <- glm.nb(helpful_vote ~ 
+                                 verified_purchase * sentiment_score + verified_purchase * bing_score +
+                                 rating + review_length + review_age + price + category,
+                               data = standardized_data)
+
+
+model2
+
+```
+
+```{r}
+tidy(model2) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+
+```{r}
+
+
+modelsummary(model2,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable") 
+```
+
+### Model 3
+
+This model includes eight NRC emotion scores as key predictors to assess how specific emotional tones influence helpfulness votes. Alongside these, verified purchase, review length, review age, price, and category are included as control variables. The aim is to evaluate the direct contribution of each emotional dimension to review helpfulness using a Negative Binomial regression framework.
+
+```{r}
+
+model3 <- glm.nb(helpful_vote ~ joy + trust + fear + anger + sadness + disgust + surprise + anticipation + verified_purchase + review_length + review_age + price + category,
+                               data = standardized_data)
+
+
+
+model3
+
+```
+
+
+
+```{r}
+
+
+ft_nrc <- modelsummary(
+  model3,
+  fmt = 3,                         # 3 ondalık basamak
+  statistic = "std.error",         # yalnızca std.error göster
+  stars = TRUE,                    # p-value'lara göre yıldız
+  output = "flextable"
+) %>%
+  fontsize(size = 10, part = "all") %>%
+  padding(padding = 2, part = "all") %>%
+  align(align = "center", part = "all") %>%
+  set_table_properties(width = 0.95, layout = "autofit") %>%
+  font(fontname = "Times New Roman", part = "all")
+
+doc <- read_docx() %>%
+  body_add_par("Table A2. Standardized Coefficients from NRC Emotion-Enriched Negative Binomial Model", style = "heading 2") %>%
+  body_add_flextable(ft_nrc) %>%
+  body_add_par("Note: All continuous predictors are z-standardized. Standard errors in parentheses. + p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001", style = "Normal")
+
+# 3. Dışa aktar
+print(doc, target = "Table_B3_NRC_Model.docx")
+
+```
+
+
+### Model4-Emotion × Verified Purchase Interaction
+Model 4 examines how emotional expressions interact with the reviewer’s verified purchase status in shaping perceived helpfulness. Specifically, it includes interaction terms between eight NRC emotions and whether the reviewer is verified. Control variables such as review length, rating, review age, price, and product category are also included. This setup allows the model to test whether emotional tone influences helpfulness differently for verified and non-verified reviewers.
+
+```{r}
+model4 <- glm.nb(helpful_vote ~ 
+                                joy * verified_purchase + 
+                                trust * verified_purchase + 
+                                fear * verified_purchase + 
+                                anger * verified_purchase + 
+                                sadness * verified_purchase + 
+                                disgust * verified_purchase + 
+                                surprise * verified_purchase + 
+                                anticipation * verified_purchase + 
+                                review_length + rating + review_age + price + category,
+                              data = standardized_data)
+
+summary(model4)
+
+
+
+
+```
+
+```{r}
+tidy(model4) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+
+modelsummary(model4,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable") 
+
+```
+
+### Model 5- Emotion × Trust Interaction
+
+Model 5 explores whether the effect of emotional expression interacts with other predictors such as joy, verified purchase, and overall sentiment score to influence helpful votes. By including these interaction terms, the model investigates whether trust amplifies or moderates the impact of other emotional or contextual features. It also adjusts for core review characteristics like length, rating, age, price, and category to isolate these effects.
+
+```{r}
+
+model5 <- glm.nb(helpful_vote ~ 
+                                joy * trust + 
+                                trust * verified_purchase + 
+                                sentiment_score * trust + 
+                                review_length + rating + review_age + price + category,
+                              data = standardized_data)
+
+summary(model5)
+
+
+```
+
+
+```{r}
+tidy(model5) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+modelsummary(model5,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable") 
+```
+
+
+
+### Model6- Fear × Sadness Interaction
+
+Model 6 shows the interaction between fear and sadness in predicting helpful votes, controlling for review-level factors such as length, rating, age, price, and product category. This setup allows for the examination of whether these two negative emotions jointly shape perceived helpfulness beyond their individual effects.
+
+```{r}
+model6 <- glm.nb(helpful_vote ~ 
+                                fear * sadness + 
+                                review_length + rating + review_age + price + category,
+                              data = standardized_data)
+
+summary(model6)
+
+```
+
+
+
+```{r}
+tidy(model6) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+
+```{r}
+
+modelsummary(model6,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable") 
+```
+
+
+
+### Model 7 Emotion × Review Length
+
+Model 7 shows how different emotions interact with review length to influence helpfulness. By including interaction terms between each emotion (like joy, fear, and anger) and review length, it checks whether emotions have a stronger or weaker effect depending on how long the review is. The model also accounts for other factors like star rating, how old the review is, product price, and category.
+
+```{r}
+model7 <- glm.nb(helpful_vote ~ 
+                                joy * review_length + 
+                                trust * review_length + 
+                                fear * review_length + 
+                                anger * review_length + 
+                                sadness * review_length + 
+                                disgust * review_length + 
+                                surprise * review_length + 
+                                anticipation * review_length + 
+                                review_length + rating + review_age + price + category,
+                              data = standardized_data)
+
+summary(model7)
+
+```
+
+```{r}
+tidy(model7) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+modelsummary(model7,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+
+### Model 8
+
+Model 8 shows how the overall sentiment score interacts with verified purchase status, while also considering specific emotions (joy, fear, positive, and negative), review characteristics (rating, length, age), price, and product category. This approach helps to identify whether the influence of emotional tone on helpfulness differs between verified and non-verified reviewers, and how emotional content and review features collectively shape perceived usefulness.
+
+
+```{r}
+model8 <- glm.nb(helpful_vote ~ sentiment_score * verified_purchase + 
+                          joy+ fear + positive + negative + rating + review_length + 
+                         review_age + price + category, 
+                         data = standardized_data)
+summary(model8)
+
+```
+
+
+
+```{r}
+tidy(model8) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+modelsummary(model8,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+
+```{r}
+
+vif(model8)
+
+
+```
+
+
+
+
+
+### Model 9 
+
+```{r}
+  # glm.nb için
+
+model9 <- glm.nb(helpful_vote ~ sentiment_score + bing_label + review_length + rating + verified_purchase, data = standardized_data)
+
+summary(model9)
+
+```
+
+
+
+```{r}
+tidy(model9) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+
+
+
+```{r}
+
+modelsummary(model9,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+
+```
+
+### Model 10
+Model 10 evaluates how review helpfulness is influenced by sentiment type (captured via bing_label), review length, rating, and the interaction between sentiment score and verified purchase status. This model allows for the assessment of whether being verified moderates the effect of sentiment intensity, while also accounting for structural features of the review.
+
+```{r}
+
+model10 <- glm.nb(helpful_vote ~ + bing_label + review_length + rating + sentiment_score * verified_purchase, 
+                   data = standardized_data)
+
+summary(model10)
+
+
+```
+
+
+```{r}
+tidy(model10) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+
+```{r}
+
+modelsummary(model10,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+
+
+### Model 11
+
+Model 11 examines how verified purchase status interacts with both sentiment score and review age to influence helpfulness votes. By including these interaction terms, the model investigates whether the credibility of the reviewer (via verification) changes how sentiment or recency affects perceived usefulness. Additionally, it controls for review length and star rating.
+
+```{r}
+
+model11 <- glm.nb(helpful_vote ~ 
+                              verified_purchase * sentiment_score +
+                              verified_purchase * review_age +
+                              review_length +
+                              rating,
+                            data = standardized_data)
+
+summary(model11)
+
+
+```
+
+```{r}
+tidy(model11) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+
+```{r}
+
+modelsummary(model11,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+
+### Model 12
+Model 12 explores several interaction effects to better understand the dynamics behind review helpfulness. It includes:
+
+-the interaction between verified purchase and sentiment score,
+-between review length and sentiment score,
+-between verified purchase and review age,
+-and between verified purchase and review length.
+It also incorporates BING sentiment labels and controls for star rating. This model is designed to capture how both emotional tone and textual features behave differently depending on reviewer credibility and temporal factors.
+
+```{r}
+
+model12 <- glm.nb(helpful_vote ~ 
+                              verified_purchase * sentiment_score +
+                              review_length * sentiment_score +
+                              verified_purchase * review_age +
+                              verified_purchase * review_length + 
+                              bing_label +
+                              rating,
+                            data = standardized_data)
+
+summary(model12)
+
+```
+
+
+```{r}
+tidy(model12) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+modelsummary(model12,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+### Model 13
+
+Model 13 includes interaction terms between sentiment score and several contextual variables such as verified purchase status, review length, review age, and price. These interactions aim to capture how the impact of sentiment on helpful votes may vary depending on who wrote the review, how detailed or recent it is, and how much the product costs. The model also controls for categorical sentiment labels (via bing_label) and the product’s star rating. This comprehensive specification helps assess whether the usefulness of a review is shaped by the combination of emotional intensity and contextual factors.
+
+```{r}
+
+model13 <- glm.nb(helpful_vote ~ 
+                              verified_purchase * sentiment_score +
+                              review_length * sentiment_score +
+                              verified_purchase * review_age +
+                              verified_purchase * review_length + 
+                              bing_label + sentiment_score * price +
+                              rating,
+                            data = standardized_data)
+
+
+
+summary(model13)
+
+```
+
+```{r}
+tidy(model13) %>%
+  mutate(signif = case_when(
+    p.value < 0.001 ~ "***",
+    p.value < 0.01 ~ "**",
+    p.value < 0.05 ~ "*",
+    TRUE ~ ""
+  )) %>%
+ dplyr::select(term, estimate, std.error, statistic, signif) %>%
+  mutate(across(where(is.numeric), ~round(., 3))) %>%
+  flextable() %>%
+  font(fontname = "Times New Roman", part = "all")
+```
+
+```{r}
+
+modelsummary(model13,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+### Model ZINB
+
+he Zero-Inflated Negative Binomial (ZINB) model accounts for the excess of zero helpful votes in the data by modeling two processes: one predicting whether a review receives any helpful vote (zero-inflation component), and another predicting how many helpful votes it receives (count component). In this model, the main effects and interaction between verified purchase and sentiment score are included, along with controls for review length, age, rating, and price. This structure allows the model to better handle the overdispersion and zero-heavy nature of the outcome variable compared to standard count models.
+
+```{r}
+
+
+model_zinb <- zeroinfl(helpful_vote ~ verified_purchase * sentiment_score + 
+                                      review_length + review_age + rating + price, 
+                       dist = "negbin", data = standardized_data)
+summary(model_zinb)
+
+```
+
+
+```{r}
+
+# Count model
+count_coef <- coef(model_zinb, model = "count")
+count_se <- sqrt(diag(vcov(model_zinb)))[1:length(count_coef)]
+count_z <- count_coef / count_se
+count_p <- 2 * (1 - pnorm(abs(count_z)))
+
+count_df <- data.frame(
+  Model = "Count",
+  Term = names(count_coef),
+  Estimate = round(count_coef, 3),
+  Std.Error = round(count_se, 3),
+  z.value = round(count_z, 3),
+  p.value = round(count_p, 3),
+  Signif = case_when(
+    count_p < 0.001 ~ "***",
+    count_p < 0.01 ~ "**",
+    count_p < 0.05 ~ "*",
+    TRUE ~ ""
+  )
+)
+
+# Zero-inflation model
+zero_coef <- coef(model_zinb, model = "zero")
+zero_se <- sqrt(diag(vcov(model_zinb)))[(length(count_coef)+1):(length(count_coef)+length(zero_coef))]
+zero_z <- zero_coef / zero_se
+zero_p <- 2 * (1 - pnorm(abs(zero_z)))
+
+zero_df <- data.frame(
+  Model = "Zero",
+  Term = names(zero_coef),
+  Estimate = round(zero_coef, 3),
+  Std.Error = round(zero_se, 3),
+  z.value = round(zero_z, 3),
+  p.value = round(zero_p, 3),
+  Signif = case_when(
+    zero_p < 0.001 ~ "***",
+    zero_p < 0.01 ~ "**",
+    zero_p < 0.05 ~ "*",
+    TRUE ~ ""
+  )
+)
+
+
+model_results <- bind_rows(count_df, zero_df)
+
+model_results %>%
+  kable(caption = "ZINB Model Coefficients", booktabs = TRUE) %>%
+  kable_styling(full_width = FALSE)
+
+
+
+
+
+```
+
+
+```{r}
+
+modelsummary(model_zinb,
+             fmt = 3,
+             statistic = "std.error",
+             stars = TRUE,
+             output = "flextable")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#### Model Comparisons 
+
+This section presents a side-by-side comparison of three key models: a baseline Negative Binomial (NB) model, an interaction-enhanced NB model, and a Zero-Inflated NB (ZINB) model.
+
+```{r}
+models <- list(
+  "Model 1: NB (Standardized)" = model1,
+  "Model 2: Interaction (Standardized)" =  model2,
+  "Model 3: ZINB (Standardized)"= model_zinb 
+)
+
+ 
+
+ft <- modelsummary(models,
+                   fmt = 3,
+                   statistic = "std.error",
+                   stars = TRUE,
+                   output = "flextable")
+
+ft <- ft %>%
+  fontsize(size = 11, part = "all") %>%
+  font(fontname = "Times New Roman", part = "all") %>%
+  align(align = "left", part = "all") %>%
+  set_table_properties(layout = "autofit") %>%
+  theme_booktabs()
+
+ft <- ft %>%
+  colformat_num(digits = 3, big.mark = ",")
+
+
+doc <- read_docx()
+doc <- body_add_flextable(doc, value = ft)
+print(doc, target = "final_model_table.docx")
+
+```
+
+This visualization displays the coefficient estimates from three models—Baseline Negative Binomial (NB), Interaction NB, and Zero-Inflated NB (ZINB).
+
+```{r}
+
+
+models <- list(
+  "Model 1: Baseline NB" = model1,
+  "Model 2: Interaction" = model2,
+  "Model 3: ZINB" = model_zinb
+)
+
+p <- modelplot(models,
+               coef_omit = "(Intercept)|category",
+               conf_level = 0.95) +  # bu argüman gerekli
+  labs(title = "Coefficient Estimates Across Models",
+       x = "Coefficient Estimate", y = NULL) +
+  theme_minimal() +
+  theme(text = element_text(family = "Times New Roman"))
+
+print(p)
+
+
+```
+This plot provides a side-by-side comparison of coefficient estimates from eight different models, each incorporating varying predictors and interaction effects.
+
+```{r}
+models <- list(
+  "Model 1: Baseline NB"     = model1,
+  "Model 2: Verified × Sentiment" = model2,
+  "Model 3: NRC Emotions"    = model3,
+  "Model 4: Trust × Sentiment" = model5,
+  "Model 5: BING Labels"     = model9,
+  "Model 6: Moderated by Price" = model12,
+  "Model 7: Minimal Model"  = model13,
+  "ZINB Model"               = model_zinb
+)
+
+plot_obj <- modelplot(models,
+          coef_omit = "(Intercept)|category",  
+          conf_level = 0.95) +
+  labs(title = "Coefficient Estimates Across Models",
+       x = "Coefficient Estimate", y = NULL) +
+  theme_minimal() +
+  theme(text = element_text(family = "Times New Roman"))
+
+
+ggsave("model_comparison_plot2.png", plot = plot_obj,
+       width = 10, height = 6, dpi = 300)
+
+
+```
+
+This code estimates separate Negative Binomial regression models for each product category to explore how the effects of predictors vary across different product types. Each model includes the same set of predictors which are verified purchase status, sentiment score, review length, review age, rating, and price allowing for consistent comparisons.
+
+
+```{r}
+
+
+categories <- unique(standardized_data$category)
+
+models_by_category <- map(
+  categories,
+  ~ glm.nb(helpful_vote ~ verified_purchase + sentiment_score + review_length + review_age + rating + price,
+           data = filter(standardized_data, category == .x))
+)
+
+names(models_by_category) <- categories
+
+table_cat <- modelsummary(
+  models_by_category,
+  fmt = 3,
+  stars = TRUE,
+  statistic = "std.error",
+  output = "flextable"
+)
+
+
+doc <- read_docx() %>%
+  body_add_par("Table A3. Category-wise Negative Binomial Models", style = "heading 2") %>%
+  body_add_flextable(table_cat) %>%
+  body_add_par("Note: All continuous variables are z-standardized. Standard errors in parentheses. + p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001", style = "Normal")
+
+print(doc, target = "Table_A3_Category_Models.docx")
+
+```
+
+
+
