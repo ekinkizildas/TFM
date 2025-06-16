@@ -1,16 +1,20 @@
 ---
-title: "exploratory_analysis.Rmd"
+title: "03exploratory_analysis.Rmd"
 author: "Ekin Kizildas"
 date: "2025-06-15"
 output: html_document
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+
 ```
 
 
-```{r}
+
+
+
+```{r load_libraries, include=FALSE}
 library(tidyverse)
 library(syuzhet)
 library(gt)
@@ -29,7 +33,7 @@ library(knitr)
 To begin the exploratory analysis, the preprocessed and cleaned dataset is loaded from an external R script. This script includes all previous data wrangling steps to ensure the consistency and readiness of the dataset for further analysis.
 
 ```{r}
-source("extracted_data_cleaning_code.R", local = knitr::knit_global())
+source("extracted_Data_Cleaning_code.R", local = knitr::knit_global())
 ```
 
 ## 3. Descriptive Statistics
@@ -281,8 +285,6 @@ ggplot(sample_data, aes(x = bing_score, fill = category)) +
   ) +
   theme_minimal()+
   theme(legend.position = "none") 
-
-ggsave("sentimentd_bing.png", plot = last_plot(), width = 10, height = 6, dpi = 300)
 
 ```
 
@@ -682,8 +684,6 @@ b <- final_summary %>%
 
 ```
 
-```{r}
-purl("exploratory_analysis.Rmd", output = "extracted_exploratory_analysis_code.R")
-```
+
 
 

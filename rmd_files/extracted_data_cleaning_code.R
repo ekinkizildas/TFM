@@ -1,17 +1,19 @@
-## ----setup, include=FALSE-----------------------
+## ----setup, include=FALSE---------
 knitr::opts_chunk$set(echo = TRUE)
 
 
-## -----------------------------------------------
+## ---------------------------------
 library(tidyverse)    
 library(readr)   
 library(tidytext)     
 library(syuzhet)    
 library(textdata) 
-library(mice)       
+library(mice)   
+library(knitr)
 
 
-## -----------------------------------------------
+
+## ---------------------------------
 sample_data_row <- read_csv("sample_data_balanced.csv")
 
 sample_data_row <- sample_data_row %>%
@@ -21,7 +23,7 @@ sample_data_row <- sample_data_row %>%
   )
 
 
-## -----------------------------------------------
+## ---------------------------------
 sample_data_row <- sample_data_row %>%
   mutate(
     helpful_binary = ifelse(helpful_vote > 0, 1, 0),
@@ -34,7 +36,7 @@ sample_data_row <- sample_data_row %>%
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 sum(is.na(sample_data_row))
 
 na_cols <- colSums(is.na(sample_data_row))
@@ -42,7 +44,7 @@ na_cols[na_cols > 0]
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 
 # Drop unused column
 sample_data <- sample_data_row %>%
@@ -78,14 +80,14 @@ colSums(is.na(sample_data))
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 
 sample_data$sentiment_score <- get_sentiment(sample_data$text, method = "afinn")
 
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 
 
 # Tokenize the text (split into words)
@@ -115,7 +117,7 @@ sample_data <- sample_data %>%
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 
 
 bing_lexicon <- get_sentiments("bing")
@@ -139,7 +141,7 @@ sample_data <- left_join(sample_data, bing_scores, by = "review_id", relationshi
 
 
 
-## -----------------------------------------------
+## ---------------------------------
 sample_data <- sample_data %>%
 mutate(bing_label = case_when(
 bing_score > 0~ "Positive",

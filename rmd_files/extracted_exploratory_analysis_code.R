@@ -1,8 +1,8 @@
-## ----setup, include=FALSE-----------------------
+## ----setup, include=FALSE-------------------------------------------------------
 knitr::opts_chunk$set(echo = TRUE)
 
 
-## -----------------------------------------------
+## ----load_libraries, include=FALSE----------------------------------------------
 library(tidyverse)
 library(syuzhet)
 library(gt)
@@ -18,11 +18,11 @@ library(knitr)
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 source("extracted_data_cleaning_code.R", local = knitr::knit_global())
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 summary(sample_data %>% 
           dplyr::select(helpful_vote, review_length, review_age, sentiment_score, price))
 
@@ -40,7 +40,7 @@ summary(sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 category_summary <- sample_data %>%
   group_by(category) %>%
@@ -58,7 +58,7 @@ gt(category_summary)
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   arrange(desc(helpful_vote)) %>%
   dplyr::select(helpful_vote, verified_purchase, rating, sentiment_score, text) %>%
@@ -67,7 +67,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   arrange(desc(joy)) %>%
   dplyr::select(joy, helpful_vote, rating, text) %>%
@@ -75,7 +75,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
  sample_data %>%
   mutate(length_group = case_when(
     review_length < 100 ~ "Short",
@@ -89,7 +89,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   filter(sentiment_score > 8 | sentiment_score < -8) %>%
   dplyr::select(sentiment_score, helpful_vote, rating, text) %>%
@@ -97,13 +97,13 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data <- sample_data %>%
   mutate(sentiment_per_100 = (sentiment_score / review_length) * 100)
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data %>% filter(helpful_vote <= 20), aes(x = helpful_vote)) +
   geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
   labs(
@@ -117,7 +117,7 @@ ggplot(sample_data %>% filter(helpful_vote <= 20), aes(x = helpful_vote)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   group_by(category) %>%
   summarise(helpful_rate = mean(helpful_binary)) %>%
@@ -131,7 +131,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = review_length)) +
   geom_histogram(binwidth = 50, fill = "#00BFC4", color = "white") +
   scale_x_continuous(limits = c(0, 1500)) +
@@ -145,7 +145,7 @@ ggplot(sample_data, aes(x = review_length)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = sentiment_score)) +
   geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
   labs(
@@ -158,7 +158,7 @@ ggplot(sample_data, aes(x = sentiment_score)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = bing_score)) +
   geom_histogram(binwidth = 1, fill = "#00BFC4", color = "white") +
   labs(
@@ -170,7 +170,7 @@ ggplot(sample_data, aes(x = bing_score)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = price)) +
   geom_histogram(binwidth = 5, fill = "#00BFC4", color = "white") +
   scale_x_continuous(limits = c(0, 300)) +
@@ -184,7 +184,7 @@ ggplot(sample_data, aes(x = price)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = sentiment_score, fill = category)) +
   geom_density(alpha = 0.6, color = "black") +
   xlim(0, 25) +
@@ -200,7 +200,7 @@ ggplot(sample_data, aes(x = sentiment_score, fill = category)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = bing_score, fill = category)) +
   geom_density(alpha = 0.6, color = "black") +
   xlim(0, 25) +
@@ -213,11 +213,9 @@ ggplot(sample_data, aes(x = bing_score, fill = category)) +
   theme_minimal()+
   theme(legend.position = "none") 
 
-ggsave("sentimentd_bing.png", plot = last_plot(), width = 10, height = 6, dpi = 300)
 
 
-
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 overall_emotion_summary <- sample_data %>%
   summarise(across(c(joy, trust, fear, anger, sadness, disgust, surprise, anticipation),
@@ -233,7 +231,7 @@ ggplot(overall_emotion_summary, aes(x = reorder(emotion, -mean_value), y = mean_
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   group_by(verified_purchase) %>%
   summarise(avg_helpful = mean(helpful_vote, na.rm = TRUE)) %>%
@@ -250,7 +248,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   filter(review_age > 0) %>%
   ggplot(aes(x = log10(review_age), y = log10(helpful_vote + 1))) +
@@ -268,7 +266,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 sample_data %>%
   count(verified_purchase) %>%
@@ -288,7 +286,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 
 sample_data$review_year <- format(as.Date(sample_data$review_date), "%Y")
@@ -302,7 +300,7 @@ temporal_summary <- sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 temporal_verified <- sample_data %>%
   group_by(review_year) %>%
@@ -331,14 +329,14 @@ ggplot(temporal_verified, aes(x = as.numeric(review_year), y = rate, color = typ
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = rating)) +
   geom_bar(fill = "#00BFC4") +
   labs(title = "Distribution of Star Ratings")
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 ggplot(sample_data, aes(x = rating, y = helpful_vote)) +
   stat_summary(fun = mean, geom = "col", fill = "#00BFC4") +
   labs(title = "Average Helpful Votes by Rating")
@@ -347,7 +345,7 @@ ggplot(sample_data, aes(x = rating, y = helpful_vote)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data <- sample_data %>%
   mutate(review_age_group = case_when(
     review_age < 1000 ~ "Recent",
@@ -365,7 +363,7 @@ summary_data <- sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 ggplot(summary_data, aes(x = factor(rating), y = avg_helpful, color = as.factor(verified_purchase), group = verified_purchase)) +
   geom_line(size = 1.2) +
@@ -384,7 +382,7 @@ ggplot(summary_data, aes(x = factor(rating), y = avg_helpful, color = as.factor(
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 sample_data <- sample_data %>%
   mutate(length_group = cut(review_length,
@@ -394,7 +392,7 @@ sample_data <- sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   ggplot(aes(x = sentiment_score, y = log(review_length + 1), color = length_group)) +
   geom_point(alpha = 0.2, size = 0.8) +
@@ -410,7 +408,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 sample_data %>%
   ggplot(aes(x = bing_score, y = log(review_length + 1), color = length_group)) +
   geom_point(alpha = 0.2, size = 0.8) +
@@ -425,7 +423,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 
 sample_data %>%
@@ -452,7 +450,7 @@ sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 ggplot(sample_data, aes(x = category, y = helpful_vote)) +
   geom_violin(fill = "#00BFC4") +
@@ -468,7 +466,7 @@ ggplot(sample_data, aes(x = category, y = helpful_vote)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 
 ggplot(sample_data, aes(x = review_age)) +
@@ -485,7 +483,7 @@ ggplot(sample_data, aes(x = review_age)) +
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 summary_table <- sample_data %>%
   group_by(category, verified_purchase) %>%
@@ -502,7 +500,7 @@ summary_table <- sample_data %>%
 
 
 
-## -----------------------------------------------
+## -------------------------------------------------------------------------------
 
 bing_pct_table <- sample_data %>%
   filter(!is.na(bing_label)) %>%
@@ -553,6 +551,8 @@ b <- final_summary %>%
 
 
 
-## -----------------------------------------------
-purl("exploratory_analysis.Rmd", output = "extracted_exploratory_analysis_code.R")
+## -------------------------------------------------------------------------------
+knitr::purl("03exploratory_analysis.Rmd", 
+            output = "extracted_exploratory_analysis_code.R")
+
 

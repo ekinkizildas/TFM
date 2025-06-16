@@ -1,4 +1,4 @@
----
+  ---
 title: "Data_Cleaning"
 author: "Ekin Kizildas"
 date: "2025-06-15"
@@ -6,11 +6,17 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  echo = TRUE,
+  # Auto-generate unique names for unnamed chunks
+  autodep = TRUE,
+  # Add file prefix to all chunks
+  fig.path = paste0("figure_", gsub("\\.Rmd$", "", knitr::current_input()), "_")
+)
 ```
 
 
-```{r}
+```{r libraries}
 library(tidyverse)    
 library(readr)   
 library(tidytext)     
@@ -28,7 +34,7 @@ library(knitr)
 The dataset `sample_data_balanced.csv` is loaded into R and minor column renaming is performed for clarity. Specifically, the `title.x` column is renamed as `review_title` to represent the title of the customer review, while `title.y` is renamed as `product_title` to indicate the associated product’s name.
 
 
-```{r}
+```{r 01_data_load}
 sample_data_row <- read_csv("sample_data_balanced.csv")
 
 sample_data_row <- sample_data_row %>%
@@ -49,7 +55,7 @@ Several new features are engineered to enhance the dataset:
 These features are designed to capture structural and temporal aspects of review content.
 
 
-```{r}
+```{r 02_clean_step1}
 sample_data_row <- sample_data_row %>%
   mutate(
     helpful_binary = ifelse(helpful_vote > 0, 1, 0),
@@ -73,7 +79,7 @@ Missing values in numeric and categorical variables are handled using a combinat
 
 A final check is performed to confirm that all critical fields are complete.
 
-```{r}
+```{r imputation}
 sum(is.na(sample_data_row))
 
 na_cols <- colSums(is.na(sample_data_row))
@@ -83,7 +89,7 @@ na_cols[na_cols > 0]
 
 
 
-```{r}
+```{r cleaning/imputation}
 
 # Drop unused column
 sample_data <- sample_data_row %>%
@@ -125,7 +131,7 @@ colSums(is.na(sample_data))
 Sentiment scores are computed using the **AFINN lexicon** via the `syuzhet` package. This lexicon assigns integer sentiment values ranging from negative to positive. The result is a new variable `sentiment_score` representing the overall tone of each review.
 
 
-```{r}
+```{r afinn}
 
 sample_data$sentiment_score <- get_sentiment(sample_data$text, method = "afinn")
 
@@ -137,7 +143,7 @@ sample_data$sentiment_score <- get_sentiment(sample_data$text, method = "afinn")
 Each review is tokenized into individual words, and the **NRC emotion lexicon** is applied to classify each word into one of eight basic emotions (e.g., *joy*, *anger*, *fear*). Emotion frequencies are counted per review and joined back to the main dataset. This allows for a multi-dimensional understanding of the emotional tone embedded in customer feedback.
 
 
-```{r}
+```{r NRC}
 
 
 # Tokenize the text (split into words)
@@ -172,7 +178,7 @@ sample_data <- sample_data %>%
 The **Bing lexicon** is used to assign binary sentiment polarity (positive or negative) to each tokenized word. A net score is computed for each review and then converted into categorical labels: `"Positive"`, `"Negative"`, or `"Neutral"`. This variable `bing_label` complements the numeric `sentiment_score` and can be used in classification tasks.
 
 
-```{r}
+```{r Bing}
 
 
 bing_lexicon <- get_sentiments("bing")
@@ -196,7 +202,7 @@ sample_data <- left_join(sample_data, bing_scores, by = "review_id", relationshi
 
 ```
 
-```{r}
+```{r labeling}
 sample_data <- sample_data %>%
 mutate(bing_label = case_when(
 bing_score > 0~ "Positive",
@@ -207,8 +213,5 @@ TRUE~ "Neutral"
 
 
 
-```{r}
-purl("Data_Cleaning.Rmd", output = "extracted_data_cleaning_code.R")
 
-```
 
