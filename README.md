@@ -18,6 +18,14 @@ Consumer decisions today are increasingly shaped by online reviews. Yet not all 
 ## 🛠️ Repository Contents
 
 ```         
+├── 03exploratory_analysis_files/
+│   └── figure-html/
+├── rmd_files/
+│   └── [contains R Markdown files, e.g., 03exploratory_analysis.Rmd]
+├── tables/
+├── .Rhistory
+├── .gitignore
+└── README.md
 
 ```
 
