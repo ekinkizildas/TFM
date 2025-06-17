@@ -28,8 +28,9 @@ Consumer decisions today are increasingly shaped by online reviews. Yet not all 
 └── README.md
 ⚠️ Important Note:
 The file 01Preprocessing_Data.Rmd was used only for initial data pruning and manual exclusions.
-It is not intended for reproducibility and should not be executed unless you intend to replicate the data cleaning logic manually.
-Please start your analysis from 02Data_Cleaning.Rmd.
+It includes subjective cleaning steps such as removing irrelevant categories or filtering problematic entries by hand.
+It is not meant for reproducibility and should only be run if you wish to inspect or replicate the initial data curation logic.
+To ensure consistency, all downstream analysis begins from 02Data_Cleaning.Rmd.
 ```
 
 ## 📊 Key Findings
