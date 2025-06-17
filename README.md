@@ -1,6 +1,4 @@
-# TFM
-
-🧠 Why Are Some Reviews More Helpful Than Others? The Role of Verified Status and Emotional Tone
+# Why Are Some Reviews More Helpful Than Others? The Role of Verified Status and Emotional Tone
 
 This repository contains the full research project and materials for my master's thesis submitted to Universidad Carlos III de Madrid. The study investigates what makes online product reviews more helpful on platforms like Amazon, focusing on the effects of **verified purchase status, emotional tone, and contextual variables such as price, review age, and product category**.
 
