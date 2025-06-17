@@ -1,4 +1,3 @@
-
 # TFM
 
 🧠 Why Are Some Reviews More Helpful Than Others?
@@ -69,8 +68,14 @@ To ensure consistency, all downstream analysis begins from 02Data_Cleaning.Rmd.
 - Combining quantitative and qualitative methods
 
 ## 📥 Get the Data
-Download preprocessed dataset:  
+Download the preprocessed dataset used in this thesis:
 https://drive.google.com/file/d/1Nj15jBgyAN7EvNd0VLEVnJHvJFVK85QF/view?usp=sharing 
+⚠️ Important Note:
+The original raw dataset is publicly available at
+🔗 https://amazon-reviews-2023.github.io
+However, do not download the data directly from the source if you intend to reproduce this analysis.
+The dataset used in this project includes manual filtering and exclusions for research purposes.
+Please use the provided preprocessed file to ensure consistency with the reported results.
 
 
 ## 💬 Connect
