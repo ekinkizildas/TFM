@@ -123,6 +123,8 @@ modelsummary(model1,
              stars = TRUE,
              output = "flextable") 
 
+
+
 ```
 
 
@@ -159,12 +161,13 @@ tidy(model2) %>%
 
 ```{r}
 
-
 modelsummary(model2,
              fmt = 3,
              statistic = "std.error",
              stars = TRUE,
              output = "flextable") 
+
+
 ```
 
 ### Model 3
@@ -200,13 +203,7 @@ ft_nrc <- modelsummary(
   set_table_properties(width = 0.95, layout = "autofit") %>%
   font(fontname = "Times New Roman", part = "all")
 
-doc <- read_docx() %>%
-  body_add_par("Table A2. Standardized Coefficients from NRC Emotion-Enriched Negative Binomial Model", style = "heading 2") %>%
-  body_add_flextable(ft_nrc) %>%
-  body_add_par("Note: All continuous predictors are z-standardized. Standard errors in parentheses. + p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001", style = "Normal")
 
-# 3. Dışa aktar
-print(doc, target = "Table_B3_NRC_Model.docx")
 
 ```
 
@@ -731,11 +728,13 @@ model_results %>%
 
 ```{r}
 
-modelsummary(model_zinb,
+ft3 <- modelsummary(model_zinb,
              fmt = 3,
              statistic = "std.error",
              stars = TRUE,
              output = "flextable")
+
+
 ```
 
 
@@ -780,32 +779,20 @@ This section presents a side-by-side comparison of three key models: a baseline 
 ```{r}
 models <- list(
   "Model 1: NB (Standardized)" = model1,
-  "Model 2: Interaction (Standardized)" =  model2,
-  "Model 3: ZINB (Standardized)"= model_zinb 
+  "Model 2: Interaction (Standardized)" =  model2
 )
 
  
-
-ft <- modelsummary(models,
+modelsummary(models,
                    fmt = 3,
                    statistic = "std.error",
                    stars = TRUE,
                    output = "flextable")
 
-ft <- ft %>%
-  fontsize(size = 11, part = "all") %>%
-  font(fontname = "Times New Roman", part = "all") %>%
-  align(align = "left", part = "all") %>%
-  set_table_properties(layout = "autofit") %>%
-  theme_booktabs()
-
-ft <- ft %>%
-  colformat_num(digits = 3, big.mark = ",")
 
 
-doc <- read_docx()
-doc <- body_add_flextable(doc, value = ft)
-print(doc, target = "final_model_table.docx")
+
+
 
 ```
 
@@ -855,8 +842,6 @@ plot_obj <- modelplot(models,
   theme(text = element_text(family = "Times New Roman"))
 
 
-ggsave("model_comparison_plot2.png", plot = plot_obj,
-       width = 10, height = 6, dpi = 300)
 
 
 ```
@@ -886,12 +871,7 @@ table_cat <- modelsummary(
 )
 
 
-doc <- read_docx() %>%
-  body_add_par("Table A3. Category-wise Negative Binomial Models", style = "heading 2") %>%
-  body_add_flextable(table_cat) %>%
-  body_add_par("Note: All continuous variables are z-standardized. Standard errors in parentheses. + p < 0.1, * p < 0.05, ** p < 0.01, *** p < 0.001", style = "Normal")
 
-print(doc, target = "Table_A3_Category_Models.docx")
 
 ```
 
